@@ -86,8 +86,10 @@ app.post("/users", async (req, res) => {
     }
 })
 
-app.get("/users", (req, res) => {
+app.get("/users", async (req, res) => {
     try {
+
+        const users = await User.find({})
 
         // db call
         return res.status(200).json({
@@ -104,18 +106,23 @@ app.get("/users", (req, res) => {
     }
 })
 
-app.get("/users/:id", (req, res) => {
+app.get("/users/:id", async (req, res) => {
     try {
+
+        const id = req.params.id
+        // console.log("id", id)
 
         // db call
 
-        const user = users.filter(user => user.id == req.params.id)
+        const user = await User.findById(id)
 
-        if(!user.length){
+        // console.log(user._id)
+        // console.log(user.id)
+
+        if(!user){
             return res.status(200).json({
                 success : false,
                 message : "User not found",
-                user
             })
         }
 
@@ -128,16 +135,36 @@ app.get("/users/:id", (req, res) => {
     } catch (err) {
         return res.status(500).json({
             success : false,
-            message : "Please try again"
+            message : "Please try again",
+            error : err.message
         })
     }
 })
 
-app.patch("/users/:id", (req, res) => {
+app.patch("/users/:id", async (req, res) => {
     try {
-        let updatedUser = users.map((user, index) => user.id == req.params.id ? {...users[index], ...req.body} : user)
-        users = [...updatedUser]
-        return res.json({"message" : "user updated successfully"})
+        const id = req.params.id
+
+        const {name, password, email} = req.body
+
+        const updatedUser = await User.findByIdAndUpdate(
+            id, 
+            {name, password, email}, 
+            { new : true }
+        )
+
+        if(!updatedUser){
+            return res.status(200).json({
+                success : false,
+                message : "User not found",
+            })
+        }
+
+        return res.status(200).json({
+            success : true,
+            message : "User updated successfully",
+            updatedUser
+        })
     } catch (err) {
         return res.status(500).json({
             success : false,
@@ -146,11 +173,27 @@ app.patch("/users/:id", (req, res) => {
     }
 })
 
-app.delete("/users/:id", (req, res) => {
+app.delete("/users/:id", async (req, res) => {
     try {
-        let filteredUser = users.filter(user => user.id != req.params.id)
-        users = [...filteredUser]
-        return res.status(200).json({"message" : "user deleted successfully"})
+        const id = req.params.id
+
+        const deletedUser = await User.findByIdAndDelete(id)
+
+        if(!deletedUser){
+            return res.status(200).json({
+                success : false,
+                message : "User not found",
+            })
+        }
+
+        return res.status(200).json({
+            success : true,
+            message : "User deleted successfully",
+            deletedUser
+        })
+        // let filteredUser = users.filter(user => user.id != req.params.id)
+        // users = [...filteredUser]
+        // return res.status(200).json({"message" : "user deleted successfully"})
     } catch (err) {
         return res.status(500).json({
             success : false,
