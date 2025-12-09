@@ -4,11 +4,14 @@ const {
     getAllUser, 
     getUserById, 
     updateUser, 
-    deleteUser
+    deleteUser,
+    login
 } = require("../controllers/userController")
 const route = express.Router()
 
 route.post("/users", createUser)
+
+route.post("/login", login)
 
 route.get("/users", getAllUser)
 
