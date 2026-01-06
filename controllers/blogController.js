@@ -8,72 +8,75 @@ async function createBlog(req, res) {
 
         const creator = req.user
 
-        const {title, description, draft} = req.body
+        const { title, description, draft } = req.body
         // console.log(req.body)
-        if(!title){
+        if (!title) {
             return res.status(200).json({
-                message : "Please fill title field"
+                message: "Please fill title field"
             })
         }
 
-        if(!description){
+        if (!description) {
             return res.status(200).json({
-                message : "Please fill description field"
+                message: "Please fill description field"
             })
         }
 
         const findUser = await User.findById(creator)
-        
+
         if (!findUser) {
             return res.status(500).json({
-                message : "User not found"
+                message: "User not found"
             })
         }
 
-        const blog = await Blog.create({description, title, draft, creator})
+        const blog = await Blog.create({ description, title, draft, creator })
 
-        await User.findByIdAndUpdate(creator, {$push : {blogs : blog._id}})
+        await User.findByIdAndUpdate(creator, { $push: { blogs: blog._id } })
 
         return res.status(200).json({
-            message : "Blog created successfully",
+            message: "Blog created successfully",
             blog
         })
     } catch (err) {
         return res.status(500).json({
-            message : err.message
+            message: err.message
         })
     }
 }
 
 async function getAllBlog(req, res) {
     try {
-        const blogs = await Blog.find({draft : false}).populate({
-            path : "creator",
-            select : "name",
+        const blogs = await Blog.find({ draft: false }).populate({
+            path: "creator",
+            select: "name",
             // select : "-password"
+        }).populate({
+            path : "likes",
+            select : "email name"
         })
         return res.status(200).json({
-            message : "Blog fetched successfully",
-            blog : blogs
+            message: "Blog fetched successfully",
+            blog: blogs
         })
     } catch (err) {
         return res.status(500).json({
-            message : err.message
+            message: err.message
         })
     }
 }
 
 async function getBlogById(req, res) {
     try {
-        const {id} = req.params
+        const { id } = req.params
         const blogs = await Blog.findById(id)
         return res.status(200).json({
-            message : "Blog fetched successfully",
-            blog : blogs
+            message: "Blog fetched successfully",
+            blog: blogs
         })
     } catch (err) {
         return res.status(500).json({
-            message : err.message
+            message: err.message
         })
     }
 }
@@ -81,25 +84,25 @@ async function getBlogById(req, res) {
 async function updateBlog(req, res) {
     try {
         const creator = req.user
-        const {id} = req.params
+        const { id } = req.params
 
-        const {title, description, draft} = req.body
+        const { title, description, draft } = req.body
 
         // const user = await User.findById(creator).select("-password")
         // console.log(user.blogs.find(blodId => blodId === id))
 
         const blog = await Blog.findById(id)
 
-        if(!blog){
+        if (!blog) {
             return res.status(500).json({
-                success : false,
-                message : "Blog not found",
+                success: false,
+                message: "Blog not found",
             })
         }
 
-        if(!(creator == blog.creator)){
+        if (!(creator == blog.creator)) {
             return res.status(500).json({
-                message : "You are not authorized for this action",
+                message: "You are not authorized for this action",
             })
         }
 
@@ -116,13 +119,13 @@ async function updateBlog(req, res) {
         await blog.save()
 
         return res.status(200).json({
-            success : true,
-            message : "Blog updated successfully",
+            success: true,
+            message: "Blog updated successfully",
             blog
         })
     } catch (err) {
         return res.status(500).json({
-            message : err.message
+            message: err.message
         })
     }
 }
@@ -130,34 +133,68 @@ async function updateBlog(req, res) {
 async function deleteBlog(req, res) {
     try {
         const creator = req.user
-        const {id} = req.params
+        const { id } = req.params
 
         const blog = await Blog.findById(id)
 
-        if(!blog){
+        if (!blog) {
             return res.status(500).json({
-                success : false,
-                message : "Blog not found",
+                success: false,
+                message: "Blog not found",
             })
         }
 
-        if(creator != blog.creator){
+        if (creator != blog.creator) {
             return res.status(500).json({
-                success : false,
-                message : "You are not authorized for this action",
+                success: false,
+                message: "You are not authorized for this action",
             })
         }
 
         await Blog.findByIdAndDelete(id)
-        await User.findByIdAndUpdate(creator, {$pull : {blogs : id}})
+        await User.findByIdAndUpdate(creator, { $pull: { blogs: id } })
 
         return res.status(200).json({
-            success : true,
-            message : "Blog deleted successfully"
+            success: true,
+            message: "Blog deleted successfully"
         })
     } catch (err) {
         return res.status(500).json({
-            message : err.message
+            message: err.message
+        })
+    }
+}
+
+async function likeBlog(req, res) {
+    try {
+        const creator = req.user
+        const { id } = req.params
+
+        const blog = await Blog.findById(id)
+
+        if (!blog) {
+            return res.status(500).json({
+                success: false,
+                message: "Blog not found",
+            })
+        }
+
+        if (!blog.likes.includes(creator)) {
+            await Blog.findByIdAndUpdate(id, {$push : {likes : creator}})
+            return res.status(200).json({
+                success: true,
+                message: "Blog liked successfully"
+            })
+        } else {
+            await Blog.findByIdAndUpdate(id, {$pull : {likes : creator}})
+            return res.status(200).json({
+                success: true,
+                message: "Blog unliked successfully"
+            })
+        }
+    } catch (err) {
+        return res.status(500).json({
+            message: err.message
         })
     }
 }
@@ -167,5 +204,6 @@ module.exports = {
     getAllBlog,
     getBlogById,
     updateBlog,
-    deleteBlog
+    deleteBlog,
+    likeBlog
 }
